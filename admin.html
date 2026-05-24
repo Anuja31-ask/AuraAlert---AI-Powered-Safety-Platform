@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel – AuraAlert</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+<div id="toast-container"></div>
+
+<nav class="nav">
+  <a href="index.html" class="nav-brand">
+    <div class="logo-icon">🛡️</div>
+    <span class="brand-text">AuraAlert <span style="font-size:0.65rem;background:var(--red);padding:2px 6px;border-radius:4px;font-family:'DM Sans',sans-serif;font-weight:700;margin-left:4px;">ADMIN</span></span>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="admin.html" class="active">🔧 Admin</a></li>
+    <li><a href="dashboard.html">📊 Dashboard</a></li>
+    <li><a href="heatmap.html">🗺️ Heatmap</a></li>
+  </ul>
+  <div class="nav-actions">
+    <span style="font-size:0.8rem;color:var(--text-muted);">Logged as <strong style="color:var(--cyan);">Admin</strong></span>
+    <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+    <div class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+  </div>
+</nav>
+
+<div class="dash-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-label">Admin Navigation</div>
+    <a href="#overview" class="sidebar-link active" onclick="showSection('overview',this)"><span class="sidebar-icon">📊</span> Overview</a>
+    <a href="#users" class="sidebar-link" onclick="showSection('users',this)"><span class="sidebar-icon">👥</span> User Management</a>
+    <a href="#incidents" class="sidebar-link" onclick="showSection('incidents',this)"><span class="sidebar-icon">📋</span> Incident Reports <span class="sidebar-badge" id="adminReportBadge">0</span></a>
+    <a href="#hotspots" class="sidebar-link" onclick="showSection('hotspots',this)"><span class="sidebar-icon">🔥</span> Crime Hotspots</a>
+    <a href="#analytics" class="sidebar-link" onclick="showSection('analytics',this)"><span class="sidebar-icon">📈</span> Analytics</a>
+    <a href="#alerts" class="sidebar-link" onclick="showSection('alerts',this)"><span class="sidebar-icon">🔔</span> SOS Alerts</a>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" style="background:linear-gradient(135deg,#ef4444,#dc2626);">A</div>
+        <div>
+          <div class="user-name">Admin User</div>
+          <div class="user-role" style="color:var(--red);">Administrator</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+
+    <!-- ─── OVERVIEW ─── -->
+    <div id="section-overview">
+      <div class="dash-header">
+        <div>
+          <div class="dash-title">🔧 Admin Control Panel</div>
+          <div class="dash-subtitle" id="adminTime">Last updated: just now</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="refreshData()">🔄 Refresh</button>
+          <button class="btn btn-danger btn-sm" onclick="exportData()">📥 Export</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);">
+        <div class="glass-card stat-card" style="border-left:3px solid var(--cyan);">
+          <div class="stat-icon" style="background:var(--cyan-dim);">👥</div>
+          <div class="stat-value text-cyan" id="totalUsers">0</div>
+          <div class="stat-label">Total Users</div>
+          <div class="stat-change up">↑ Active members</div>
+        </div>
+        <div class="glass-card stat-card" style="border-left:3px solid var(--red);">
+          <div class="stat-icon" style="background:var(--red-dim);">📋</div>
+          <div class="stat-value text-red" id="totalIncidents">0</div>
+          <div class="stat-label">Total Incidents</div>
+          <div class="stat-change down">Community reports</div>
+        </div>
+        <div class="glass-card stat-card" style="border-left:3px solid var(--yellow);">
+          <div class="stat-icon" style="background:var(--yellow-dim);">🔥</div>
+          <div class="stat-value text-yellow" id="totalHotspots">35</div>
+          <div class="stat-label">Crime Hotspots</div>
+          <div class="stat-change down">Mapped zones</div>
+        </div>
+        <div class="glass-card stat-card" style="border-left:3px solid var(--green);">
+          <div class="stat-icon" style="background:var(--green-dim);">🆘</div>
+          <div class="stat-value text-green" id="totalSOS">0</div>
+          <div class="stat-label">SOS Alerts</div>
+          <div class="stat-change up">All responded</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+        <!-- Crime by area bar chart -->
+        <div class="glass-card chart-wrap">
+          <div class="chart-title">📊 Crime Count by Area (Top 8)</div>
+          <div class="chart-body">
+            <div class="bar-chart" id="adminAreaChart"></div>
+          </div>
+        </div>
+        <!-- Time distribution -->
+        <div class="glass-card chart-wrap">
+          <div class="chart-title">🕐 Incidents by Time of Day</div>
+          <div class="chart-body">
+            <div class="bar-chart" id="adminTimeChart"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="glass-card" style="padding:1.25rem;margin-bottom:1.5rem;">
+        <div class="flex-between mb-4">
+          <div class="chart-title">🗺️ Crime Hotspot Map (Admin View)</div>
+          <a href="heatmap.html" class="btn btn-outline btn-sm">Full Map →</a>
+        </div>
+        <div id="adminMap" style="height:320px;border-radius:var(--radius-md);overflow:hidden;"></div>
+      </div>
+
+      <!-- Recent reports table -->
+      <div class="glass-card" style="padding:1.5rem;margin-bottom:1.5rem;">
+        <div class="flex-between mb-4">
+          <div class="chart-title">📋 Latest Incident Reports</div>
+          <button class="btn btn-outline btn-sm" onclick="showSection('incidents', document.querySelector('[onclick*=incidents]'))">View All →</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Date</th><th>Type</th><th>Area</th><th>Risk</th><th>Anonymous</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody id="adminRecentTable"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No reports yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── USERS ─── -->
+    <div id="section-users" class="hidden">
+      <div class="dash-header">
+        <div><div class="dash-title">👥 User Management</div><div class="dash-subtitle">All registered users</div></div>
+        <button class="btn btn-primary btn-sm" onclick="refreshData()">🔄 Refresh</button>
+      </div>
+      <div class="glass-card" style="padding:1.5rem;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Name</th><th>Email</th><th>City</th><th>Blood</th><th>Contacts</th><th>Joined</th><th>Status</th></tr>
+            </thead>
+            <tbody id="usersTable"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">No users registered yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── INCIDENTS ─── -->
+    <div id="section-incidents" class="hidden">
+      <div class="dash-header">
+        <div><div class="dash-title">📋 Incident Reports</div><div class="dash-subtitle">All community-submitted reports</div></div>
+        <div style="display:flex;gap:8px;">
+          <select class="form-control" style="width:auto;padding:8px 12px;font-size:0.85rem;" id="incidentFilter" onchange="filterIncidents()">
+            <option value="all">All Types</option>
+            <option value="Harassment">Harassment</option>
+            <option value="Assault">Assault</option>
+            <option value="Robbery">Robbery</option>
+            <option value="Suspicious Activity">Suspicious</option>
+          </select>
+          <select class="form-control" style="width:auto;padding:8px 12px;font-size:0.85rem;" id="riskFilter" onchange="filterIncidents()">
+            <option value="all">All Risk</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="glass-card" style="padding:1.5rem;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Date</th><th>Type</th><th>Area</th><th>Risk</th><th>Anon</th><th>Status</th><th>Action</th></tr>
+            </thead>
+            <tbody id="allIncidentsTable"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">No reports yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── HOTSPOTS ─── -->
+    <div id="section-hotspots" class="hidden">
+      <div class="dash-header">
+        <div><div class="dash-title">🔥 Crime Hotspots</div><div class="dash-subtitle">Dataset: 35 zones across Mumbai, Pune, Delhi</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem;" id="hotspotCards"></div>
+    </div>
+
+    <!-- ─── ANALYTICS ─── -->
+    <div id="section-analytics" class="hidden">
+      <div class="dash-header">
+        <div><div class="dash-title">📈 Analytics & AI Predictions</div><div class="dash-subtitle">Crime trend analysis & risk prediction</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+        <div class="glass-card" style="padding:1.5rem;">
+          <div class="chart-title mb-4">🏙️ City-wise Crime Distribution</div>
+          <div style="display:flex;flex-direction:column;gap:12px;" id="cityDistribution"></div>
+        </div>
+        <div class="glass-card" style="padding:1.5rem;">
+          <div class="chart-title mb-4">🤖 AI Risk Prediction</div>
+          <div style="font-size:0.85rem;color:var(--text-secondary);line-height:1.8;" id="aiAnalytics">
+            Loading predictions…
+          </div>
+        </div>
+      </div>
+      <div class="glass-card" style="padding:1.5rem;">
+        <div class="chart-title mb-4">📋 Pune Crime Data (2022 vs 2023)</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Crime Type</th><th>2022 Registered</th><th>2022 Detected</th><th>2023 Registered</th><th>2023 Detected</th><th>% Change</th></tr></thead>
+            <tbody>
+              <tr><td>Rape</td><td>984</td><td>912</td><td>973</td><td>933</td><td class="text-green">+2.3%</td></tr>
+              <tr><td>Kidnapping</td><td>1164</td><td>1047</td><td>1167</td><td>1096</td><td class="text-red">-0.3%</td></tr>
+              <tr><td>Molestation</td><td>2349</td><td>1957</td><td>2163</td><td>2054</td><td class="text-green">+8%</td></tr>
+              <tr><td>Harassment (498A)</td><td>868</td><td>517</td><td>746</td><td>701</td><td class="text-green">+14%</td></tr>
+              <tr><td>Dowry Death</td><td>6</td><td>6</td><td>7</td><td>6</td><td class="text-red">-14%</td></tr>
+              <tr><td>Murder</td><td>133</td><td>129</td><td>123</td><td>118</td><td class="text-green">+7.5%</td></tr>
+              <tr><td>Robbery</td><td>846</td><td>727</td><td>642</td><td>628</td><td class="text-green">+24%</td></tr>
+              <tr><td>Total (All IPC)</td><td>70,367</td><td>47,866</td><td>45,869</td><td>34,991</td><td class="text-green">+35%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SOS ALERTS ─── -->
+    <div id="section-alerts" class="hidden">
+      <div class="dash-header">
+        <div><div class="dash-title">🆘 SOS Alert Log</div><div class="dash-subtitle">All emergency SOS events</div></div>
+      </div>
+      <div class="glass-card" style="padding:1.5rem;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Time</th><th>User</th><th>Location</th><th>Contacts</th><th>Status</th></tr>
+            </thead>
+            <tbody id="sosLogTable"><tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No SOS alerts yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
+<script src="map.js"></script>
+<script>
+// Admin access check
+const adminUser = JSON.parse(localStorage.getItem('aura_user') || '{}');
+if (adminUser.role !== 'admin') {
+  showToast('error','Access denied','Admin only area.');
+  setTimeout(() => location.href = 'login.html', 1500);
+}
+
+// Section switcher
+function showSection(id, el) {
+  document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('hidden'));
+  document.getElementById('section-' + id).classList.remove('hidden');
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (id === 'hotspots') renderHotspots();
+  if (id === 'analytics') renderAnalytics();
+  if (id === 'users') renderUsers();
+  if (id === 'incidents') renderAllIncidents();
+  if (id === 'alerts') renderSOSLog();
+}
+
+// Crime data
+const crimeData = [
+  {area:'Paharganj',crime_count:92,risk_level:'high',lat:28.6448,lng:77.2167,city:'Delhi',crime_type:'Assault'},
+  {area:'Sangam Vihar',crime_count:85,risk_level:'high',lat:28.5099,lng:77.2516,city:'Delhi',crime_type:'Robbery'},
+  {area:'Kasba Peth',crime_count:78,risk_level:'high',lat:18.5159,lng:73.8545,city:'Pune',crime_type:'Assault'},
+  {area:'Dharavi',crime_count:87,risk_level:'high',lat:19.0413,lng:72.8527,city:'Mumbai',crime_type:'Assault'},
+  {area:'Kondhwa',crime_count:65,risk_level:'high',lat:18.4613,lng:73.8883,city:'Pune',crime_type:'Robbery'},
+  {area:'Uttam Nagar',crime_count:79,risk_level:'high',lat:28.6213,lng:77.0563,city:'Delhi',crime_type:'Assault'},
+  {area:'Kurla West',crime_count:72,risk_level:'high',lat:19.0726,lng:72.8793,city:'Mumbai',crime_type:'Harassment'},
+  {area:'Nangloi',crime_count:74,risk_level:'high',lat:28.6758,lng:77.0627,city:'Delhi',crime_type:'Robbery'},
+];
+
+function refreshData() {
+  loadStats();
+  renderAreaChart();
+  renderTimeChart();
+  renderAdminMap();
+  renderRecentTable();
+  updateBadges();
+  document.getElementById('adminTime').textContent = 'Last updated: ' + new Date().toLocaleTimeString('en-IN');
+  showToast('success','Refreshed','Data updated successfully.');
+}
+
+function loadStats() {
+  const users = JSON.parse(localStorage.getItem('aura_users') || '[]');
+  const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  const sosLog = JSON.parse(localStorage.getItem('aura_sos_log') || '[]');
+  document.getElementById('totalUsers').textContent = users.length;
+  document.getElementById('totalIncidents').textContent = reports.length;
+  document.getElementById('totalSOS').textContent = sosLog.length;
+  document.getElementById('adminReportBadge').textContent = reports.filter(r => r.status === 'Pending Review').length;
+}
+
+function updateBadges() {
+  const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  document.getElementById('adminReportBadge').textContent = reports.filter(r => r.status === 'Pending Review').length;
+}
+
+function renderAreaChart() {
+  const el = document.getElementById('adminAreaChart');
+  const maxCount = Math.max(...crimeData.map(d => d.crime_count));
+  el.innerHTML = crimeData.slice(0,8).map(d => {
+    const h = Math.round((d.crime_count / maxCount) * 160);
+    const col = d.risk_level === 'high' ? 'red' : d.risk_level === 'medium' ? 'yellow' : 'green';
+    return `<div class="bar-item">
+      <div class="bar ${col}" style="height:${h}px;" title="${d.area}: ${d.crime_count}"></div>
+      <div class="bar-label">${d.area.split(' ')[0]}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTimeChart() {
+  const el = document.getElementById('adminTimeChart');
+  const timeData = [
+    { label: 'Morning', count: 12, col: 'green' },
+    { label: 'Afternoon', count: 28, col: 'yellow' },
+    { label: 'Evening', count: 65, col: 'yellow' },
+    { label: 'Night', count: 95, col: 'red' },
+  ];
+  const max = Math.max(...timeData.map(d => d.count));
+  el.innerHTML = timeData.map(d => {
+    const h = Math.round((d.count / max) * 160);
+    return `<div class="bar-item">
+      <div class="bar ${d.col}" style="height:${h}px;"></div>
+      <div class="bar-label">${d.label}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdminMap() {
+  if (window.adminMapInit) return;
+  window.adminMapInit = true;
+  const map = L.map('adminMap').setView([20.5937, 78.9629], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+
+  crimeData.forEach(d => {
+    const color = d.risk_level === 'high' ? '#ef4444' : d.risk_level === 'medium' ? '#f59e0b' : '#22c55e';
+    L.circleMarker([d.lat, d.lng], {
+      radius: Math.min(d.crime_count / 8, 18),
+      fillColor: color, color: color, weight: 1,
+      opacity: 0.9, fillOpacity: 0.5
+    }).addTo(map).bindPopup(`<b>${d.area}</b><br/>City: ${d.city}<br/>Crimes: ${d.crime_count}<br/>Risk: ${d.risk_level}`);
+  });
+}
+
+function renderRecentTable() {
+  const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  const tbody = document.getElementById('adminRecentTable');
+  if (!reports.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No community reports yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = reports.slice(0, 10).map((r, i) => `
+    <tr>
+      <td style="color:var(--text-muted);">#${i + 1}</td>
+      <td>${r.date}</td>
+      <td>${r.type}</td>
+      <td>${r.area}, ${r.city}</td>
+      <td><span class="badge ${r.riskLevel === 'high' ? 'badge-danger' : r.riskLevel === 'medium' ? 'badge-caution' : 'badge-safe'}">${r.riskLevel}</span></td>
+      <td>${r.anonymous ? '🔒' : '👤'}</td>
+      <td><span class="badge badge-info">${r.status}</span></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="updateStatus(${i})">✓ Verify</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderUsers() {
+  const users = JSON.parse(localStorage.getItem('aura_users') || '[]');
+  const tbody = document.getElementById('usersTable');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">No users registered yet. <a href="register.html" style="color:var(--cyan);">Register one →</a></td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map((u, i) => `
+    <tr>
+      <td style="color:var(--text-muted);">#${i + 1}</td>
+      <td><strong>${u.name}</strong></td>
+      <td style="color:var(--text-secondary);">${u.email}</td>
+      <td>${u.city || '—'}</td>
+      <td style="color:var(--red);font-weight:700;">${u.bloodGroup || '—'}</td>
+      <td><span class="badge badge-safe">${(u.contacts || []).length} contacts</span></td>
+      <td>${u.joinDate || 'Recent'}</td>
+      <td><span class="badge badge-info">Active</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderAllIncidents() {
+  const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  renderIncidentsTable(reports);
+}
+
+function renderIncidentsTable(reports) {
+  const tbody = document.getElementById('allIncidentsTable');
+  if (!reports.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:2rem;">No reports yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = reports.map((r, i) => `
+    <tr>
+      <td style="color:var(--text-muted);">#${i + 1}</td>
+      <td>${r.date}</td>
+      <td>${r.type}</td>
+      <td>${r.area}, ${r.city}</td>
+      <td><span class="badge ${r.riskLevel === 'high' ? 'badge-danger' : r.riskLevel === 'medium' ? 'badge-caution' : 'badge-safe'}">${r.riskLevel}</span></td>
+      <td>${r.anonymous ? '🔒 Yes' : '👤 No'}</td>
+      <td><span class="badge badge-info">${r.status}</span></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="verifyReport(${i})" style="font-size:0.72rem;">✓ Verify</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteReport(${i})" style="font-size:0.72rem;color:var(--red);">✕</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterIncidents() {
+  const type = document.getElementById('incidentFilter').value;
+  const risk = document.getElementById('riskFilter').value;
+  let reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  if (type !== 'all') reports = reports.filter(r => r.type === type);
+  if (risk !== 'all') reports = reports.filter(r => r.riskLevel === risk);
+  renderIncidentsTable(reports);
+}
+
+function verifyReport(i) {
+  const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  if (reports[i]) { reports[i].status = 'Verified'; localStorage.setItem('aura_reports', JSON.stringify(reports)); }
+  renderAllIncidents();
+  showToast('success', 'Report Verified', 'Status updated.');
+}
+
+function deleteReport(i) {
+  const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  reports.splice(i, 1);
+  localStorage.setItem('aura_reports', JSON.stringify(reports));
+  renderAllIncidents();
+  showToast('info', 'Report Deleted', 'Removed successfully.');
+}
+
+function renderHotspots() {
+  const el = document.getElementById('hotspotCards');
+  const allZones = [
+    {area:'Dharavi',city:'Mumbai',count:87,risk:'high'},
+    {area:'Paharganj',city:'Delhi',count:92,risk:'high'},
+    {area:'Kasba Peth',city:'Pune',count:78,risk:'high'},
+    {area:'Kurla West',city:'Mumbai',count:72,risk:'high'},
+    {area:'Sangam Vihar',city:'Delhi',count:85,risk:'high'},
+    {area:'Kondhwa',city:'Pune',count:65,risk:'high'},
+    {area:'Uttam Nagar',city:'Delhi',count:79,risk:'high'},
+    {area:'Nangloi',city:'Delhi',count:74,risk:'high'},
+    {area:'Govandi',city:'Mumbai',count:68,risk:'high'},
+    {area:'Hadapsar',city:'Pune',count:58,risk:'high'},
+    {area:'Byculla',city:'Mumbai',count:49,risk:'medium'},
+    {area:'Yerwada',city:'Pune',count:47,risk:'medium'},
+    {area:'Chembur',city:'Mumbai',count:42,risk:'medium'},
+    {area:'Kothrud',city:'Pune',count:40,risk:'medium'},
+    {area:'Malad East',city:'Mumbai',count:38,risk:'medium'},
+    {area:'Koregaon Park',city:'Pune',count:22,risk:'low'},
+    {area:'Baner',city:'Pune',count:18,risk:'low'},
+    {area:'Andheri West',city:'Mumbai',count:28,risk:'low'},
+  ];
+  el.innerHTML = allZones.map(z => `
+    <div class="glass-card" style="padding:1.25rem;border-left:3px solid ${z.risk==='high'?'var(--red)':z.risk==='medium'?'var(--yellow)':'var(--green)'};">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div style="font-weight:700;font-size:0.9rem;">${z.area}</div>
+        <span class="badge ${z.risk==='high'?'badge-danger':z.risk==='medium'?'badge-caution':'badge-safe'}">${z.risk}</span>
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-muted);">📍 ${z.city}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+        <div style="flex:1;height:6px;background:var(--border-glass);border-radius:3px;">
+          <div style="width:${Math.round((z.count/92)*100)}%;height:100%;background:${z.risk==='high'?'var(--red)':z.risk==='medium'?'var(--yellow)':'var(--green)'};border-radius:3px;"></div>
+        </div>
+        <span style="font-size:0.78rem;font-weight:700;color:${z.risk==='high'?'var(--red)':z.risk==='medium'?'var(--yellow)':'var(--green)'}">${z.count}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAnalytics() {
+  const cityData = [
+    { city: 'Delhi', total: 450, pct: 38 },
+    { city: 'Mumbai', total: 360, pct: 31 },
+    { city: 'Pune', total: 290, pct: 25 },
+    { city: 'Others', total: 70, pct: 6 }
+  ];
+  document.getElementById('cityDistribution').innerHTML = cityData.map(c => `
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;">
+        <span style="font-weight:600;">${c.city}</span>
+        <span style="color:var(--text-muted);">${c.total} cases (${c.pct}%)</span>
+      </div>
+      <div style="height:8px;background:var(--border-glass);border-radius:4px;">
+        <div style="width:${c.pct}%;height:100%;background:linear-gradient(90deg,var(--cyan),#0891b2);border-radius:4px;transition:width 1s ease;"></div>
+      </div>
+    </div>
+  `).join('');
+
+  const hour = new Date().getHours();
+  const riskLevel = hour >= 22 || hour < 6 ? 'VERY HIGH' : hour >= 18 ? 'HIGH' : hour >= 12 ? 'MEDIUM' : 'LOW';
+  const color = hour >= 22 || hour < 6 ? 'var(--red)' : hour >= 18 ? 'var(--yellow)' : hour >= 12 ? 'var(--yellow)' : 'var(--green)';
+
+  document.getElementById('aiAnalytics').innerHTML = `
+    <div style="padding:1rem;background:var(--bg-glass);border-radius:var(--radius-md);border:1px solid var(--border-glass);margin-bottom:1rem;">
+      <div style="font-weight:700;color:${color};margin-bottom:6px;">🤖 Current Risk Level: ${riskLevel}</div>
+      <div style="font-size:0.82rem;">Based on current time (${new Date().toLocaleTimeString('en-IN')}) and historical crime patterns.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:0.83rem;">
+      <div>📈 <strong>Night hours (10PM–6AM):</strong> Crime rate 3.2x higher than daytime</div>
+      <div>🏙️ <strong>High-risk city:</strong> Delhi (38% of all incidents)</div>
+      <div>🔴 <strong>Most common:</strong> Harassment (40%), Robbery (24%)</div>
+      <div>📅 <strong>Peak days:</strong> Friday & Saturday nights</div>
+      <div>🎯 <strong>Predicted hotspot next 24h:</strong> Kasba Peth, Dharavi</div>
+      <div>✅ <strong>Detection rate 2023:</strong> 94% (up from 81% in 2022)</div>
+    </div>
+  `;
+}
+
+function renderSOSLog() {
+  const log = JSON.parse(localStorage.getItem('aura_sos_log') || '[]');
+  const tbody = document.getElementById('sosLogTable');
+  if (!log.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">No SOS events recorded</td></tr>';
+    return;
+  }
+  tbody.innerHTML = log.map((l, i) => `
+    <tr>
+      <td style="color:var(--text-muted);">#${i+1}</td>
+      <td>${l.time}</td>
+      <td>${l.user}</td>
+      <td style="color:var(--cyan);font-size:0.78rem;">${l.lat.toFixed(4)}, ${l.lng.toFixed(4)}</td>
+      <td>${l.contacts} alerted</td>
+      <td><span class="badge badge-safe">Responded</span></td>
+    </tr>
+  `).join('');
+}
+
+function updateStatus(i) { verifyReport(i); renderRecentTable(); }
+
+function exportData() {
+  const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  const users = JSON.parse(localStorage.getItem('aura_users') || '[]');
+  const data = { exportDate: new Date().toISOString(), totalUsers: users.length, totalReports: reports.length, reports, users: users.map(u => ({...u, password: '***'})) };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'auraalert_export.json'; a.click();
+  showToast('success','Export complete','Data downloaded as JSON.');
+}
+
+// Init
+refreshData();
+setInterval(() => document.getElementById('adminTime').textContent = 'Last updated: ' + new Date().toLocaleTimeString('en-IN'), 30000);
+</script>
+</body>
+</html>

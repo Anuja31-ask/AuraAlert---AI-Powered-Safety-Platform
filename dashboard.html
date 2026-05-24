@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard – AuraAlert</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+<div id="toast-container"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="index.html" class="nav-brand">
+    <div class="logo-icon">🛡️</div>
+    <span class="brand-text">AuraAlert</span>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="dashboard.html" class="active">📊 Dashboard</a></li>
+    <li><a href="heatmap.html">🗺️ Heatmap</a></li>
+    <li><a href="sos.html">🆘 SOS</a></li>
+    <li><a href="report.html">📋 Report</a></li>
+  </ul>
+  <div class="nav-actions">
+    <span id="safetyStatusNav" class="badge badge-safe">● Safe Zone</span>
+    <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+    <div class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+  </div>
+</nav>
+
+<div class="dash-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-label">Navigation</div>
+    <a href="dashboard.html" class="sidebar-link active"><span class="sidebar-icon">📊</span> Dashboard</a>
+    <a href="heatmap.html" class="sidebar-link"><span class="sidebar-icon">🗺️</span> Crime Heatmap</a>
+    <a href="sos.html" class="sidebar-link"><span class="sidebar-icon">🆘</span> SOS Emergency</a>
+    <a href="report.html" class="sidebar-link"><span class="sidebar-icon">📋</span> Report Incident</a>
+
+    <div class="sidebar-label">My Safety</div>
+    <a href="#profile" class="sidebar-link"><span class="sidebar-icon">👤</span> My Profile</a>
+    <a href="#contacts" class="sidebar-link"><span class="sidebar-icon">📞</span> Contacts</a>
+    <a href="#incidents" class="sidebar-link"><span class="sidebar-icon">📌</span> My Reports <span class="sidebar-badge" id="reportCount">0</span></a>
+
+    <div class="sidebar-label">Admin</div>
+    <a href="admin.html" class="sidebar-link" id="adminSidebarLink" style="display:none;"><span class="sidebar-icon">🔧</span> Admin Panel</a>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar" id="sidebarAvatar">P</div>
+        <div>
+          <div class="user-name" id="sidebarName">User</div>
+          <div class="user-role" id="sidebarRole">Member</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="dash-main">
+    <!-- Header -->
+    <div class="dash-header">
+      <div>
+        <div class="dash-title" id="welcomeMsg">Good Day! 👋</div>
+        <div class="dash-subtitle" id="locationInfo">📍 Detecting your location…</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div id="safetyStatus" class="badge badge-safe" style="padding:8px 16px;font-size:0.85rem;">✅ Safe Zone</div>
+        <a href="sos.html" class="btn btn-danger btn-sm">🆘 SOS</a>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="glass-card stat-card">
+        <div class="stat-icon" style="background:var(--cyan-dim);">🛡️</div>
+        <div class="stat-value text-cyan" id="safetyScore">87</div>
+        <div class="stat-label">Safety Score</div>
+        <div class="stat-change up">↑ 5 pts this week</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-icon" style="background:var(--red-dim);">⚠️</div>
+        <div class="stat-value text-red" id="nearbyAlerts">3</div>
+        <div class="stat-label">Nearby Hotspots</div>
+        <div class="stat-change down">↑ 1 from yesterday</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-icon" style="background:var(--green-dim);">📋</div>
+        <div class="stat-value text-green" id="myReports">0</div>
+        <div class="stat-label">My Reports</div>
+        <div class="stat-change up">Help others stay safe</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-icon" style="background:var(--yellow-dim);">📞</div>
+        <div class="stat-value text-yellow" id="contactCount">2</div>
+        <div class="stat-label">Emergency Contacts</div>
+        <div class="stat-change up">✓ All verified</div>
+      </div>
+    </div>
+
+    <!-- Map + Nearby -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+      <div class="glass-card" style="padding:1.25rem;">
+        <div class="flex-between mb-4">
+          <div class="chart-title">📍 Live Crime Map</div>
+          <a href="heatmap.html" class="btn btn-outline btn-sm">Full Map →</a>
+        </div>
+        <div id="dashMap" style="height:300px;border-radius:var(--radius-md);overflow:hidden;"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="glass-card" style="padding:1rem;">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">Nearby Emergency</div>
+          <div class="nearby-card" style="padding:0.75rem 0;border-bottom:1px solid var(--border-glass);">
+            <div class="nearby-icon" style="background:var(--cyan-dim);">🚔</div>
+            <div class="nearby-info"><h4>Shivajinagar PS</h4><p>Police Station</p></div>
+            <div class="nearby-dist">1.2 km</div>
+          </div>
+          <div class="nearby-card" style="padding:0.75rem 0;border-bottom:1px solid var(--border-glass);">
+            <div class="nearby-icon" style="background:var(--red-dim);">🏥</div>
+            <div class="nearby-info"><h4>Ruby Hall Clinic</h4><p>Hospital</p></div>
+            <div class="nearby-dist">2.1 km</div>
+          </div>
+          <div class="nearby-card" style="padding:0.75rem 0;">
+            <div class="nearby-icon" style="background:var(--green-dim);">✅</div>
+            <div class="nearby-info"><h4>Safe Zone Area</h4><p>Low crime zone</p></div>
+            <div class="nearby-dist">0.8 km</div>
+          </div>
+        </div>
+
+        <div class="glass-card" style="padding:1rem;">
+          <div style="font-size:0.82rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">Quick Actions</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <a href="sos.html" class="btn btn-danger btn-sm btn-full">🆘 Emergency SOS</a>
+            <a href="heatmap.html" class="btn btn-outline btn-sm btn-full">🗺️ View Heatmap</a>
+            <a href="report.html" class="btn btn-ghost btn-sm btn-full">📋 Report Incident</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+      <div class="glass-card chart-wrap">
+        <div class="chart-title">📊 Crime Incidents by Area</div>
+        <div class="chart-body">
+          <div class="bar-chart" id="areaChart"></div>
+        </div>
+      </div>
+      <div class="glass-card chart-wrap">
+        <div class="chart-title">🥧 Crime Type Distribution</div>
+        <div class="chart-body">
+          <div class="donut-wrap">
+            <svg class="donut-svg" width="130" height="130" viewBox="0 0 130 130">
+              <circle cx="65" cy="65" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="18"/>
+              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--red)" stroke-width="18" stroke-dasharray="125 189" stroke-dashoffset="0" transform="rotate(-90 65 65)"/>
+              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--yellow)" stroke-width="18" stroke-dasharray="75 239" stroke-dashoffset="-125" transform="rotate(-90 65 65)"/>
+              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--cyan)" stroke-width="18" stroke-dasharray="63 251" stroke-dashoffset="-200" transform="rotate(-90 65 65)"/>
+              <circle cx="65" cy="65" r="50" fill="none" stroke="var(--green)" stroke-width="18" stroke-dasharray="51 263" stroke-dashoffset="-263" transform="rotate(-90 65 65)"/>
+              <text x="65" y="60" text-anchor="middle" fill="var(--text-primary)" font-family="Syne" font-size="14" font-weight="800">Total</text>
+              <text x="65" y="76" text-anchor="middle" fill="var(--cyan)" font-family="Syne" font-size="11" font-weight="700">5,913</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Harassment<span class="legend-val">40%</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>Robbery<span class="legend-val">24%</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>Assault<span class="legend-val">20%</span></div>
+              <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Other<span class="legend-val">16%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile & Contacts -->
+    <div id="profile" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+      <div class="glass-card">
+        <div class="profile-card">
+          <div class="profile-avatar-lg" id="profileAvatar">P</div>
+          <div class="profile-info">
+            <h2 id="profileName">User Name</h2>
+            <p id="profileEmail">email@example.com</p>
+            <p id="profilePhone">Phone</p>
+            <p id="profileCity" style="margin-top:4px;"></p>
+          </div>
+          <div class="profile-actions">
+            <button class="btn btn-ghost btn-sm" onclick="editProfile()">✏️ Edit</button>
+          </div>
+        </div>
+        <div style="padding:0 1.5rem 1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="padding:10px;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass);">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Blood Group</div>
+            <div style="font-weight:700;color:var(--red);font-size:1.1rem;" id="profileBlood">—</div>
+          </div>
+          <div style="padding:10px;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass);">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Member Since</div>
+            <div style="font-weight:700;font-size:0.9rem;" id="profileJoin">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="contacts" class="glass-card" style="padding:1.5rem;">
+        <div class="flex-between mb-4">
+          <div class="chart-title">📞 Emergency Contacts</div>
+          <button class="btn btn-primary btn-sm" onclick="addContact()">+ Add</button>
+        </div>
+        <div id="contactsList"></div>
+      </div>
+    </div>
+
+    <!-- Recent Reports -->
+    <div id="incidents" class="glass-card" style="padding:1.5rem;margin-bottom:2rem;">
+      <div class="flex-between mb-4">
+        <div class="chart-title">📌 Recent Incident Reports</div>
+        <a href="report.html" class="btn btn-primary btn-sm">+ New Report</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Area</th>
+              <th>Status</th>
+              <th>Anonymous</th>
+            </tr>
+          </thead>
+          <tbody id="reportsTable">
+            <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:2rem;">No reports yet. <a href="report.html" style="color:var(--cyan);">Report an incident →</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Zone Status Bar -->
+<div class="zone-bar safe" id="zoneBar">
+  <span>✅ You are currently in a SAFE zone</span>
+  <span style="font-size:0.78rem;opacity:0.7;" id="zoneLocation">📍 Detecting location…</span>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
+<script src="dashboard.js"></script>
+<script src="map.js"></script>
+</body>
+</html>

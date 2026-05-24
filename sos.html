@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOS Emergency – AuraAlert</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .sos-page {
+      min-height: 100vh;
+      padding-top: 88px;
+      padding-bottom: 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .sos-hero {
+      text-align: center;
+      padding: 3rem 1rem 2rem;
+    }
+
+    /* Giant SOS Button */
+    .sos-btn-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 2rem auto;
+    }
+
+    .sos-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(239,68,68,0.3);
+      animation: sos-expand 2s ease-out infinite;
+    }
+
+    .sos-ring:nth-child(2) { animation-delay: 0.5s; }
+    .sos-ring:nth-child(3) { animation-delay: 1s; }
+
+    @keyframes sos-expand {
+      0% { width: 130px; height: 130px; opacity: 0.6; }
+      100% { width: 250px; height: 250px; opacity: 0; }
+    }
+
+    .sos-main-btn {
+      position: relative;
+      z-index: 10;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ef4444, #dc2626, #b91c1c);
+      border: 4px solid rgba(239,68,68,0.5);
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 40px rgba(239,68,68,0.6), 0 0 80px rgba(239,68,68,0.2), inset 0 -4px 20px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      letter-spacing: 0.1em;
+    }
+
+    .sos-main-btn:hover {
+      transform: scale(1.06);
+      box-shadow: 0 0 60px rgba(239,68,68,0.8), 0 0 100px rgba(239,68,68,0.3);
+    }
+
+    .sos-main-btn:active { transform: scale(0.96); }
+    .sos-main-btn .sos-label { font-size: 0.65rem; opacity: 0.8; font-weight: 600; letter-spacing: 0.15em; }
+
+    /* Active SOS state */
+    .sos-active .sos-main-btn {
+      animation: sos-throb 0.8s ease infinite;
+      background: linear-gradient(135deg, #dc2626, #991b1b);
+    }
+
+    @keyframes sos-throb {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(239,68,68,0.6); }
+      50% { transform: scale(1.04); box-shadow: 0 0 70px rgba(239,68,68,0.9); }
+    }
+
+    /* Countdown */
+    .countdown-ring {
+      position: absolute;
+      z-index: 11;
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .countdown-ring circle {
+      fill: none;
+      stroke: #f8fafc;
+      stroke-width: 5;
+      stroke-linecap: round;
+      stroke-dasharray: 440;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.1s linear;
+      transform: rotate(-90deg);
+      transform-origin: 70px 70px;
+    }
+
+    /* Status Cards */
+    .sos-status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      max-width: 700px;
+      margin: 0 auto 2rem;
+    }
+
+    .sos-status-card {
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .sos-status-icon { font-size: 1.8rem; margin-bottom: 6px; }
+    .sos-status-title { font-size: 0.8rem; font-weight: 700; }
+    .sos-status-value { font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; word-break: break-word; }
+
+    /* Alert Log */
+    .alert-log {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      padding: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-family: 'DM Mono', monospace;
+      max-height: 180px;
+      overflow-y: auto;
+      line-height: 1.8;
+    }
+
+    .log-line { padding: 2px 0; }
+    .log-line.success { color: var(--green); }
+    .log-line.error { color: var(--red); }
+    .log-line.info { color: var(--cyan); }
+
+    /* Contact Alert Cards */
+    .contact-alert-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 1.25rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .contact-alert-card:last-child { border-bottom: none; }
+
+    .contact-send-status {
+      margin-left: auto;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    @media (max-width: 600px) {
+      .sos-status-grid { grid-template-columns: 1fr; max-width: 320px; }
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<!-- Siren audio -->
+<audio id="sirenAudio" loop preload="auto">
+  <source src="data:audio/wav;base64,UklGRlQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YTAAAAA=" type="audio/wav" />
+</audio>
+
+<nav class="nav">
+  <a href="index.html" class="nav-brand">
+    <div class="logo-icon">🛡️</div>
+    <span class="brand-text">AuraAlert</span>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="dashboard.html">📊 Dashboard</a></li>
+    <li><a href="heatmap.html">🗺️ Heatmap</a></li>
+    <li><a href="sos.html" class="active">🆘 SOS</a></li>
+    <li><a href="report.html">📋 Report</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+    <div class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+  </div>
+</nav>
+
+<div class="sos-page">
+  <div class="container">
+    <div class="sos-hero" id="sosHero">
+      <div class="section-label">Emergency SOS</div>
+      <h1 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-bottom:0.5rem;">
+        Press & Hold for <span style="color:var(--red);">Emergency Alert</span>
+      </h1>
+      <p style="color:var(--text-secondary);font-size:0.9rem;">
+        Hold the button for 3 seconds to send your location to all emergency contacts.
+      </p>
+
+      <!-- SOS Button -->
+      <div class="sos-btn-wrap" id="sosBtnWrap">
+        <div class="sos-ring" style="width:130px;height:130px;"></div>
+        <div class="sos-ring" style="width:130px;height:130px;"></div>
+        <div class="sos-ring" style="width:130px;height:130px;"></div>
+        <svg class="countdown-ring hidden" id="countdownRing" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="66" id="countdownCircle"/>
+        </svg>
+        <button class="sos-main-btn" id="sosMainBtn"
+          onmousedown="startSOS()" ontouchstart="startSOS()"
+          onmouseup="cancelSOS()" ontouchend="cancelSOS()"
+          onmouseleave="cancelSOS()">
+          🆘
+          <span class="sos-label">HOLD FOR SOS</span>
+        </button>
+      </div>
+
+      <!-- Quick Send -->
+      <div style="margin-top:1rem;">
+        <button class="btn btn-danger btn-sm" onclick="instantSOS()">⚡ Instant Send (No countdown)</button>
+      </div>
+
+      <p style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem;" id="sosHint">
+        Your name, live location, and Google Maps link will be sent to your contacts.
+      </p>
+    </div>
+
+    <!-- Status Grid -->
+    <div class="sos-status-grid" style="max-width:700px;margin:0 auto 2rem;">
+      <div class="glass-card sos-status-card">
+        <div class="sos-status-icon">📍</div>
+        <div class="sos-status-title">Your Location</div>
+        <div class="sos-status-value" id="sosLocation">Detecting GPS…</div>
+      </div>
+      <div class="glass-card sos-status-card">
+        <div class="sos-status-icon">⏰</div>
+        <div class="sos-status-title">Timestamp</div>
+        <div class="sos-status-value" id="sosTime">—</div>
+      </div>
+      <div class="glass-card sos-status-card">
+        <div class="sos-status-icon">📞</div>
+        <div class="sos-status-title">Contacts Alerted</div>
+        <div class="sos-status-value" id="sosContactsCount">0 contacts</div>
+      </div>
+    </div>
+
+    <!-- Alert Result (hidden initially) -->
+    <div class="glass-card hidden" id="sosResult" style="max-width:700px;margin:0 auto 2rem;padding:1.5rem;border-color:rgba(239,68,68,0.3);">
+      <div style="flex-between;margin-bottom:1rem;" class="flex-between">
+        <div style="font-weight:800;font-family:'Syne',sans-serif;color:var(--red);">🆘 SOS ALERT SENT</div>
+        <button class="btn btn-ghost btn-sm" onclick="resetSOS()">✕ Cancel Alert</button>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;">Alert Log</div>
+        <div class="alert-log" id="alertLog">
+          <div class="log-line info">[ System ] Initializing SOS protocol…</div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;">Contacts Notified</div>
+        <div id="contactAlerts" style="background:var(--bg-glass);border-radius:var(--radius-md);border:1px solid var(--border-glass);overflow:hidden;"></div>
+      </div>
+
+      <div style="margin-top:1rem;padding:1rem;background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.2);border-radius:var(--radius-md);">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:4px;">📤 Message Sent to Contacts:</div>
+        <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.7;" id="sosMessage">—</div>
+      </div>
+    </div>
+
+    <!-- Contacts Preview -->
+    <div class="glass-card" style="max-width:700px;margin:0 auto 2rem;padding:1.5rem;">
+      <div style="font-weight:700;font-family:'Syne',sans-serif;margin-bottom:1rem;">📞 Will Alert These Contacts</div>
+      <div id="previewContacts"></div>
+      <div style="margin-top:1rem;">
+        <a href="dashboard.html#contacts" class="btn btn-outline btn-sm">+ Manage Contacts</a>
+      </div>
+    </div>
+
+    <!-- Safety Tips -->
+    <div class="glass-card" style="max-width:700px;margin:0 auto;padding:1.5rem;">
+      <div style="font-weight:700;font-family:'Syne',sans-serif;margin-bottom:1rem;">🛡️ Safety Tips</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:0.85rem;color:var(--text-secondary);">
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span>📍</span><span>Stay in well-lit, populated areas whenever possible.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span>📱</span><span>Keep your phone charged and AuraAlert open when traveling alone.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span>👥</span><span>Share your route with a trusted contact before commuting at night.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span>🚗</span><span>Prefer verified cab services. Share ride details with family.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span>🚨</span><span>Emergency: 112 (Police) | 100 | Women Helpline: 1091</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+let sosTimer = null;
+let sosActive = false;
+let sosCountdown = null;
+let userLat = null, userLng = null;
+
+// Get location
+navigator.geolocation.getCurrentPosition(
+  pos => {
+    userLat = pos.coords.latitude;
+    userLng = pos.coords.longitude;
+    document.getElementById('sosLocation').textContent = `${userLat.toFixed(4)}, ${userLng.toFixed(4)}`;
+  },
+  () => {
+    userLat = 18.5204; userLng = 73.8567;
+    document.getElementById('sosLocation').textContent = 'Approx: Pune, India';
+  }
+);
+
+// Time
+function updateTime() {
+  document.getElementById('sosTime').textContent = new Date().toLocaleString('en-IN');
+}
+updateTime();
+setInterval(updateTime, 1000);
+
+// Preview contacts
+function loadPreviewContacts() {
+  const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+  const contacts = user.contacts || [
+    { name: 'Emergency Contact 1', phone: '911', relation: 'Family' },
+    { name: 'Emergency Contact 2', phone: '112', relation: 'Friend' }
+  ];
+  document.getElementById('sosContactsCount').textContent = `${contacts.length} contact${contacts.length>1?'s':''}`;
+  const html = contacts.map(c => `
+    <div class="contact-alert-card">
+      <div class="user-avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#06b6d4,#0891b2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;">${c.name[0]}</div>
+      <div>
+        <div style="font-size:0.875rem;font-weight:600;">${c.name}</div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);">${c.relation} · ${c.phone}</div>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('previewContacts').innerHTML = html;
+  return contacts;
+}
+
+loadPreviewContacts();
+
+// Hold to SOS
+let holdProgress = 0;
+const HOLD_DURATION = 3000;
+
+function startSOS() {
+  if (sosActive) return;
+  document.getElementById('countdownRing').classList.remove('hidden');
+  let start = Date.now();
+  holdProgress = 0;
+
+  sosTimer = setInterval(() => {
+    holdProgress = (Date.now() - start) / HOLD_DURATION;
+    const offset = 440 - (440 * holdProgress);
+    document.getElementById('countdownCircle').style.strokeDashoffset = offset;
+    if (holdProgress >= 1) {
+      clearInterval(sosTimer);
+      triggerSOS();
+    }
+  }, 50);
+}
+
+function cancelSOS() {
+  if (sosActive) return;
+  clearInterval(sosTimer);
+  holdProgress = 0;
+  document.getElementById('countdownCircle').style.strokeDashoffset = 440;
+  document.getElementById('countdownRing').classList.add('hidden');
+}
+
+function instantSOS() { triggerSOS(); }
+
+function triggerSOS() {
+  sosActive = true;
+  document.getElementById('countdownRing').classList.add('hidden');
+  document.getElementById('sosBtnWrap').classList.add('sos-active');
+  document.getElementById('sosResult').classList.remove('hidden');
+
+  // Vibrate
+  if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+
+  const user = JSON.parse(localStorage.getItem('aura_user') || '{}');
+  const contacts = user.contacts || [];
+  const lat = userLat || 18.5204, lng = userLng || 73.8567;
+  const mapsLink = `https://maps.google.com/?q=${lat},${lng}`;
+  const now = new Date().toLocaleString('en-IN');
+  const name = user.name || 'AuraAlert User';
+
+  const message = `🆘 EMERGENCY ALERT from ${name}!\n📍 Live Location: ${mapsLink}\n🕐 Time: ${now}\n📞 Please call immediately!\n\nSent via AuraAlert Safety Platform`;
+  document.getElementById('sosMessage').textContent = message;
+
+  // Log
+  const log = document.getElementById('alertLog');
+  const addLog = (msg, cls='info') => {
+    const div = document.createElement('div');
+    div.className = `log-line ${cls}`;
+    div.textContent = `[ ${new Date().toLocaleTimeString()} ] ${msg}`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  addLog('SOS protocol activated.', 'info');
+  addLog(`Location acquired: ${lat.toFixed(4)}, ${lng.toFixed(4)}`, 'success');
+  addLog(`Preparing alert for ${contacts.length || 2} contacts…`, 'info');
+
+  // Contact alerts
+  const mockContacts = contacts.length ? contacts : [
+    { name: 'Emergency Contact 1', phone: '9876543210', relation: 'Family' },
+    { name: 'Emergency Contact 2', phone: '9123456789', relation: 'Friend' }
+  ];
+
+  document.getElementById('contactAlerts').innerHTML = mockContacts.map(c => `
+    <div class="contact-alert-card">
+      <div class="user-avatar" style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;">${c.name[0]}</div>
+      <div>
+        <div style="font-size:0.875rem;font-weight:600;">${c.name}</div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);">${c.phone}</div>
+      </div>
+      <div class="contact-send-status" id="alertStatus_${c.phone}">⏳ Sending…</div>
+    </div>
+  `).join('');
+
+  // Simulate sending
+  mockContacts.forEach((c, i) => {
+    setTimeout(() => {
+      addLog(`Alert sent to ${c.name} (${c.phone})`, 'success');
+      const el = document.getElementById(`alertStatus_${c.phone}`);
+      if (el) { el.textContent = '✅ Sent'; el.style.color = 'var(--green)'; }
+    }, 1000 + i * 800);
+  });
+
+  setTimeout(() => {
+    addLog('All contacts notified.', 'success');
+    addLog('Stay calm. Help is on the way.', 'success');
+    showToast('error','🆘 SOS SENT','Emergency contacts have been alerted!');
+  }, 1000 + mockContacts.length * 800);
+
+  // Save SOS record
+  const logs = JSON.parse(localStorage.getItem('aura_sos_log') || '[]');
+  logs.unshift({ time: now, lat, lng, user: name, contacts: mockContacts.length });
+  localStorage.setItem('aura_sos_log', JSON.stringify(logs.slice(0, 20)));
+}
+
+function resetSOS() {
+  sosActive = false;
+  document.getElementById('sosBtnWrap').classList.remove('sos-active');
+  document.getElementById('sosResult').classList.add('hidden');
+  document.getElementById('alertLog').innerHTML = '<div class="log-line info">[ System ] Initializing SOS protocol…</div>';
+  showToast('info','SOS Cancelled','Alert has been deactivated.');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register – AuraAlert</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div class="auth-page" style="padding:1.5rem 1rem;">
+  <div class="auth-container" style="max-width:1020px;min-height:auto;">
+    <!-- Left Panel -->
+    <div class="auth-panel-left">
+      <div class="auth-brand">
+        <div class="logo">🛡️</div>
+        <span class="brand-name">AuraAlert</span>
+      </div>
+      <h2 class="auth-tagline">
+        Join <span class="highlight">50,000+</span><br/>Women Staying<br/>Safe Daily
+      </h2>
+      <p class="auth-desc">Create your free account in 2 minutes. Add emergency contacts, enable live location, and get AI-powered safety alerts instantly.</p>
+      <div class="auth-features">
+        <div class="auth-feature">
+          <div class="icon cyan">⚡</div>
+          <span>Free forever — no credit card</span>
+        </div>
+        <div class="auth-feature">
+          <div class="icon green">🔒</div>
+          <span>End-to-end encrypted data</span>
+        </div>
+        <div class="auth-feature">
+          <div class="icon red">📱</div>
+          <span>Works on all devices</span>
+        </div>
+        <div class="auth-feature">
+          <div class="icon yellow">🛡️</div>
+          <span>24/7 AI safety monitoring</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="auth-panel-right">
+      <div class="auth-form-header">
+        <h2>Create Account ✨</h2>
+        <p>Already registered? <a href="login.html">Sign in here</a></p>
+      </div>
+
+      <!-- Progress steps -->
+      <div style="display:flex;gap:8px;margin-bottom:1.5rem;" id="stepIndicator">
+        <div style="flex:1;height:4px;border-radius:2px;background:var(--cyan);transition:all 0.3s;" id="step1bar"></div>
+        <div style="flex:1;height:4px;border-radius:2px;background:var(--border-glass);transition:all 0.3s;" id="step2bar"></div>
+        <div style="flex:1;height:4px;border-radius:2px;background:var(--border-glass);transition:all 0.3s;" id="step3bar"></div>
+      </div>
+
+      <!-- Step 1: Basic Info -->
+      <form id="registerForm" onsubmit="handleRegister(event)">
+        <div id="stepContent1">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1rem;font-size:0.9rem;">Step 1 of 3 — Basic Info</div>
+          <div class="auth-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">First Name</label>
+                <input type="text" class="form-control" id="fname" placeholder="Priya" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Last Name</label>
+                <input type="text" class="form-control" id="lname" placeholder="Sharma" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="regEmail" placeholder="priya@example.com" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone Number</label>
+              <input type="tel" class="form-control" id="regPhone" placeholder="+91 9876543210" required />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">City</label>
+                <select class="form-control" id="regCity" required>
+                  <option value="">Select City</option>
+                  <option>Mumbai</option>
+                  <option>Pune</option>
+                  <option>Delhi</option>
+                  <option>Bangalore</option>
+                  <option>Chennai</option>
+                  <option>Hyderabad</option>
+                  <option>Kolkata</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Age Group</label>
+                <select class="form-control" id="regAge" required>
+                  <option value="">Select</option>
+                  <option>Under 18</option>
+                  <option>18-25</option>
+                  <option>26-35</option>
+                  <option>36-50</option>
+                  <option>50+</option>
+                </select>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-full" onclick="nextStep(2)">Next →</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Medical & Security -->
+        <div id="stepContent2" class="hidden">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1rem;font-size:0.9rem;">Step 2 of 3 — Medical & Security</div>
+          <div class="auth-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Blood Group</label>
+                <select class="form-control" id="bloodGroup">
+                  <option value="">Select</option>
+                  <option>A+</option><option>A-</option>
+                  <option>B+</option><option>B-</option>
+                  <option>AB+</option><option>AB-</option>
+                  <option>O+</option><option>O-</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Medical Conditions</label>
+                <input type="text" class="form-control" id="medConditions" placeholder="e.g. Diabetes, None" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <div class="password-wrap">
+                <input type="password" class="form-control" id="regPassword" placeholder="Min 8 characters" required oninput="checkStrength(this.value)" />
+                <button type="button" class="toggle-pw" onclick="togglePassword('regPassword',this)">👁️</button>
+              </div>
+              <div class="pw-strength" id="pwStrength">
+                <div class="pw-strength-bar" id="bar1"></div>
+                <div class="pw-strength-bar" id="bar2"></div>
+                <div class="pw-strength-bar" id="bar3"></div>
+              </div>
+              <div class="pw-strength-label text-muted" id="pwLabel" style="font-size:0.72rem;margin-top:3px;"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm Password</label>
+              <div class="password-wrap">
+                <input type="password" class="form-control" id="confirmPw" placeholder="Repeat password" required />
+                <button type="button" class="toggle-pw" onclick="togglePassword('confirmPw',this)">👁️</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button type="button" class="btn btn-outline" onclick="nextStep(1)" style="flex:1;">← Back</button>
+              <button type="button" class="btn btn-primary" onclick="nextStep(3)" style="flex:2;">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Emergency Contacts -->
+        <div id="stepContent3" class="hidden">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1rem;font-size:0.9rem;">Step 3 of 3 — Emergency Contacts</div>
+          <div class="auth-form">
+            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;">Add at least 2 emergency contacts. They'll be alerted during SOS.</p>
+
+            <div style="padding:1rem;background:var(--bg-glass);border-radius:var(--radius-md);border:1px solid var(--border-glass);margin-bottom:0.75rem;">
+              <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:0.75rem;">Contact 1 *</div>
+              <div class="auth-form" style="gap:0.75rem;">
+                <div class="form-row">
+                  <div class="form-group">
+                    <input type="text" class="form-control" id="c1name" placeholder="Name" required />
+                  </div>
+                  <div class="form-group">
+                    <input type="text" class="form-control" id="c1rel" placeholder="Relation" required />
+                  </div>
+                </div>
+                <input type="tel" class="form-control" id="c1phone" placeholder="Phone number" required />
+              </div>
+            </div>
+
+            <div style="padding:1rem;background:var(--bg-glass);border-radius:var(--radius-md);border:1px solid var(--border-glass);margin-bottom:0.75rem;">
+              <div style="font-size:0.8rem;font-weight:700;color:var(--cyan);margin-bottom:0.75rem;">Contact 2 *</div>
+              <div class="auth-form" style="gap:0.75rem;">
+                <div class="form-row">
+                  <div class="form-group">
+                    <input type="text" class="form-control" id="c2name" placeholder="Name" required />
+                  </div>
+                  <div class="form-group">
+                    <input type="text" class="form-control" id="c2rel" placeholder="Relation" required />
+                  </div>
+                </div>
+                <input type="tel" class="form-control" id="c2phone" placeholder="Phone number" required />
+              </div>
+            </div>
+
+            <label class="remember-label" style="margin-bottom:0.5rem;">
+              <input type="checkbox" id="termsCheck" required />
+              I agree to <a href="#" style="color:var(--cyan);">Terms of Service</a> and <a href="#" style="color:var(--cyan);">Privacy Policy</a>
+            </label>
+
+            <div style="display:flex;gap:10px;">
+              <button type="button" class="btn btn-outline" onclick="nextStep(2)" style="flex:1;">← Back</button>
+              <button type="submit" class="btn btn-success btn-full" id="registerBtn" style="flex:2;">✅ Create Account</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script src="auth.js"></script>
+<script>
+let currentStep = 1;
+
+function nextStep(step) {
+  if (step > currentStep && !validateStep(currentStep)) return;
+  currentStep = step;
+  document.getElementById('stepContent1').classList.toggle('hidden', step !== 1);
+  document.getElementById('stepContent2').classList.toggle('hidden', step !== 2);
+  document.getElementById('stepContent3').classList.toggle('hidden', step !== 3);
+  ['step1bar','step2bar','step3bar'].forEach((id, i) => {
+    document.getElementById(id).style.background = i < step ? 'var(--cyan)' : 'var(--border-glass)';
+  });
+}
+
+function validateStep(step) {
+  if (step === 1) {
+    const fields = ['fname','lname','regEmail','regPhone','regCity','regAge'];
+    for (const id of fields) {
+      if (!document.getElementById(id).value.trim()) {
+        showToast('error', 'Missing field', 'Please fill all required fields.');
+        return false;
+      }
+    }
+  }
+  if (step === 2) {
+    const pw = document.getElementById('regPassword').value;
+    const cpw = document.getElementById('confirmPw').value;
+    if (pw.length < 8) { showToast('error','Weak password','Minimum 8 characters.'); return false; }
+    if (pw !== cpw) { showToast('error','Mismatch','Passwords do not match.'); return false; }
+  }
+  return true;
+}
+
+function checkStrength(pw) {
+  const bars = [document.getElementById('bar1'), document.getElementById('bar2'), document.getElementById('bar3')];
+  const label = document.getElementById('pwLabel');
+  bars.forEach(b => { b.className = 'pw-strength-bar'; });
+  if (pw.length < 4) { label.textContent = ''; return; }
+  if (pw.length < 8) {
+    bars[0].classList.add('weak');
+    label.textContent = '🔴 Weak'; label.style.color = 'var(--red)';
+  } else if (pw.length < 12 || !/[!@#$%^&*]/.test(pw)) {
+    bars[0].classList.add('medium'); bars[1].classList.add('medium');
+    label.textContent = '🟡 Medium'; label.style.color = 'var(--yellow)';
+  } else {
+    bars.forEach(b => b.classList.add('strong'));
+    label.textContent = '🟢 Strong'; label.style.color = 'var(--green)';
+  }
+}
+
+function handleRegister(e) {
+  e.preventDefault();
+  if (!document.getElementById('termsCheck').checked) {
+    showToast('error','Terms required','Please accept the terms to continue.'); return;
+  }
+  const btn = document.getElementById('registerBtn');
+  btn.innerHTML = '⏳ Creating…'; btn.disabled = true;
+
+  const users = JSON.parse(localStorage.getItem('aura_users') || '[]');
+  const email = document.getElementById('regEmail').value;
+  if (users.find(u => u.email === email)) {
+    showToast('error','Already registered','This email already has an account.');
+    btn.innerHTML = '✅ Create Account'; btn.disabled = false; return;
+  }
+
+  const user = {
+    id: 'u' + Date.now(),
+    name: document.getElementById('fname').value + ' ' + document.getElementById('lname').value,
+    email,
+    phone: document.getElementById('regPhone').value,
+    city: document.getElementById('regCity').value,
+    ageGroup: document.getElementById('regAge').value,
+    bloodGroup: document.getElementById('bloodGroup').value,
+    medConditions: document.getElementById('medConditions').value,
+    password: btoa(document.getElementById('regPassword').value),
+    role: 'user',
+    joinDate: new Date().toLocaleDateString('en-IN'),
+    contacts: [
+      { name: document.getElementById('c1name').value, relation: document.getElementById('c1rel').value, phone: document.getElementById('c1phone').value },
+      { name: document.getElementById('c2name').value, relation: document.getElementById('c2rel').value, phone: document.getElementById('c2phone').value }
+    ]
+  };
+
+  setTimeout(() => {
+    users.push(user);
+    localStorage.setItem('aura_users', JSON.stringify(users));
+    localStorage.setItem('aura_user', JSON.stringify(user));
+    localStorage.setItem('aura_logged', 'true');
+    showToast('success','Account created!','Welcome to AuraAlert 🛡️');
+    setTimeout(() => location.href = 'dashboard.html', 1200);
+  }, 1500);
+}
+</script>
+</body>
+</html>

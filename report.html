@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report Incident – AuraAlert</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="toast-container"></div>
+
+<nav class="nav">
+  <a href="index.html" class="nav-brand">
+    <div class="logo-icon">🛡️</div>
+    <span class="brand-text">AuraAlert</span>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="dashboard.html">📊 Dashboard</a></li>
+    <li><a href="heatmap.html">🗺️ Heatmap</a></li>
+    <li><a href="sos.html">🆘 SOS</a></li>
+    <li><a href="report.html" class="active">📋 Report</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="btn btn-outline btn-sm" onclick="logout()">Logout</button>
+    <div class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+  </div>
+</nav>
+
+<div class="page-content">
+  <div class="container">
+    <div class="section">
+      <div class="text-center mb-8">
+        <div class="section-label">Community Safety</div>
+        <h1 class="section-title">Report an <span style="color:var(--cyan)">Incident</span></h1>
+        <p class="section-subtitle mt-3" style="max-width:560px;margin:0 auto;">Your report helps make communities safer. Reports can be submitted anonymously. All data is used to update our crime heatmap.</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:2rem;max-width:1000px;margin:0 auto;">
+        <!-- Form -->
+        <div class="glass-card" style="padding:2rem;">
+          <form id="reportForm" onsubmit="submitReport(event)">
+            <!-- Incident Type -->
+            <div style="margin-bottom:1.5rem;">
+              <div class="form-label mb-2">Incident Type *</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="typeGrid">
+                <div class="type-chip" data-type="Harassment" onclick="selectType(this)">😡 Harassment</div>
+                <div class="type-chip" data-type="Assault" onclick="selectType(this)">👊 Assault</div>
+                <div class="type-chip" data-type="Robbery" onclick="selectType(this)">💰 Robbery</div>
+                <div class="type-chip" data-type="Suspicious Activity" onclick="selectType(this)">👀 Suspicious Activity</div>
+                <div class="type-chip" data-type="Stalking" onclick="selectType(this)">🕵️ Stalking</div>
+                <div class="type-chip" data-type="Chain Snatching" onclick="selectType(this)">⛓️ Chain Snatching</div>
+                <div class="type-chip" data-type="Eve Teasing" onclick="selectType(this)">🚫 Eve Teasing</div>
+                <div class="type-chip" data-type="Unsafe Area" onclick="selectType(this)">⚠️ Unsafe Area</div>
+              </div>
+              <input type="hidden" id="incidentType" required />
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:1rem;">
+              <div class="form-group">
+                <label class="form-label">Description *</label>
+                <textarea class="form-control" id="incidentDesc" rows="4" placeholder="Describe what happened, any relevant details…" required></textarea>
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                  <label class="form-label">City *</label>
+                  <select class="form-control" id="incidentCity" required>
+                    <option value="">Select City</option>
+                    <option>Mumbai</option>
+                    <option>Pune</option>
+                    <option>Delhi</option>
+                    <option>Bangalore</option>
+                    <option>Chennai</option>
+                    <option>Hyderabad</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Area/Locality *</label>
+                  <input type="text" class="form-control" id="incidentArea" placeholder="e.g. Kasba Peth" required />
+                </div>
+              </div>
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                  <label class="form-label">Date of Incident *</label>
+                  <input type="date" class="form-control" id="incidentDate" required />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Time of Incident</label>
+                  <select class="form-control" id="incidentTime">
+                    <option value="morning">🌅 Morning (6am-12pm)</option>
+                    <option value="afternoon">☀️ Afternoon (12pm-6pm)</option>
+                    <option value="evening" selected>🌆 Evening (6pm-10pm)</option>
+                    <option value="night">🌙 Night (10pm-6am)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Risk Level Assessment</label>
+                <div style="display:flex;gap:10px;">
+                  <label class="risk-radio"><input type="radio" name="riskLevel" value="low" /><span class="risk-chip safe">Low Risk</span></label>
+                  <label class="risk-radio"><input type="radio" name="riskLevel" value="medium" checked /><span class="risk-chip caution">Medium Risk</span></label>
+                  <label class="risk-radio"><input type="radio" name="riskLevel" value="high" /><span class="risk-chip danger">High Risk</span></label>
+                </div>
+              </div>
+
+              <!-- Anonymous toggle -->
+              <div style="padding:1rem;background:var(--bg-glass);border-radius:var(--radius-md);border:1px solid var(--border-glass);">
+                <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+                  <div style="position:relative;width:44px;height:24px;flex-shrink:0;">
+                    <input type="checkbox" id="anonymousToggle" checked style="opacity:0;position:absolute;inset:0;cursor:pointer;z-index:2;" onchange="updateAnonText()" />
+                    <div id="toggleTrack" style="width:100%;height:100%;border-radius:12px;background:var(--cyan);transition:background 0.3s;"></div>
+                    <div id="toggleThumb" style="position:absolute;top:3px;left:23px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left 0.3s;"></div>
+                  </div>
+                  <div>
+                    <div style="font-weight:700;font-size:0.875rem;" id="anonLabel">🔒 Submit Anonymously</div>
+                    <div style="font-size:0.78rem;color:var(--text-secondary);" id="anonDesc">Your identity will be hidden from the public report.</div>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Auto-detect location -->
+              <div style="display:flex;align-items:center;gap:10px;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="useMyLocation()">📍 Use My Location</button>
+                <span style="font-size:0.78rem;color:var(--text-muted);" id="locDetected"></span>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-full btn-lg" id="submitBtn">📋 Submit Report</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Info Panel -->
+        <div style="display:flex;flex-direction:column;gap:1rem;">
+          <div class="glass-card" style="padding:1.5rem;">
+            <div style="font-weight:800;font-family:'Syne',sans-serif;margin-bottom:1rem;">Why Report?</div>
+            <div style="display:flex;flex-direction:column;gap:12px;font-size:0.83rem;color:var(--text-secondary);line-height:1.7;">
+              <div>🗺️ Your report updates the live crime heatmap instantly, warning others.</div>
+              <div>🤖 AI uses reports to predict risky areas by time and day.</div>
+              <div>🔒 Anonymous reports are fully private — no personal data shared.</div>
+              <div>👮 High-risk reports are escalated to our safety partners.</div>
+            </div>
+          </div>
+
+          <div class="glass-card" style="padding:1.5rem;">
+            <div style="font-weight:800;font-family:'Syne',sans-serif;margin-bottom:1rem;">📊 Recent Reports</div>
+            <div id="recentReports" style="display:flex;flex-direction:column;gap:10px;"></div>
+          </div>
+
+          <div class="glass-card" style="padding:1.5rem;border:1px solid rgba(239,68,68,0.2);">
+            <div style="font-weight:800;font-family:'Syne',sans-serif;color:var(--red);margin-bottom:1rem;">🚨 Emergency?</div>
+            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:1rem;">If you are in danger right now, don't wait — use SOS.</p>
+            <a href="sos.html" class="btn btn-danger btn-full">🆘 Emergency SOS</a>
+            <div style="margin-top:1rem;font-size:0.78rem;color:var(--text-muted);">
+              Police: <strong style="color:var(--text-primary)">100</strong> &nbsp;|&nbsp;
+              Women: <strong style="color:var(--text-primary)">1091</strong> &nbsp;|&nbsp;
+              Emergency: <strong style="color:var(--text-primary)">112</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- My Reports -->
+      <div class="glass-card" style="max-width:1000px;margin:2rem auto 0;padding:1.5rem;">
+        <div class="flex-between mb-4">
+          <div style="font-weight:800;font-family:'Syne',sans-serif;">📌 Your Submitted Reports</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Area</th>
+                <th>Risk</th>
+                <th>Status</th>
+                <th>Anonymous</th>
+              </tr>
+            </thead>
+            <tbody id="myReportsTable">
+              <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No reports yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.type-chip {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  text-align: center;
+}
+.type-chip:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+.type-chip.selected { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+
+.risk-radio { cursor: pointer; }
+.risk-radio input { display: none; }
+.risk-chip {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+.risk-chip.safe { background: var(--green-dim); color: var(--green); }
+.risk-chip.caution { background: var(--yellow-dim); color: var(--yellow); }
+.risk-chip.danger { background: var(--red-dim); color: var(--red); }
+.risk-radio input:checked + .risk-chip { border-color: currentColor; }
+</style>
+
+<script src="script.js"></script>
+<script>
+let selectedType = '';
+
+// Set today as default date
+document.getElementById('incidentDate').value = new Date().toISOString().split('T')[0];
+
+function selectType(el) {
+  document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedType = el.dataset.type;
+  document.getElementById('incidentType').value = selectedType;
+}
+
+function updateAnonText() {
+  const checked = document.getElementById('anonymousToggle').checked;
+  document.getElementById('anonLabel').textContent = checked ? '🔒 Submit Anonymously' : '👤 Submit with Identity';
+  document.getElementById('anonDesc').textContent = checked
+    ? 'Your identity will be hidden from the public report.'
+    : 'Your name will be included in the report.';
+  document.getElementById('toggleTrack').style.background = checked ? 'var(--cyan)' : 'var(--border-glass)';
+  document.getElementById('toggleThumb').style.left = checked ? '23px' : '3px';
+}
+
+function useMyLocation() {
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById('locDetected').textContent = `📍 ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+      showToast('success','Location detected','GPS coordinates captured.');
+    },
+    () => showToast('warning','Location unavailable','Please enter area manually.')
+  );
+}
+
+function submitReport(e) {
+  e.preventDefault();
+  if (!selectedType) { showToast('error','Select type','Please choose an incident type.'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.innerHTML = '⏳ Submitting…'; btn.disabled = true;
+
+  const report = {
+    id: 'R' + Date.now(),
+    type: selectedType,
+    description: document.getElementById('incidentDesc').value,
+    city: document.getElementById('incidentCity').value,
+    area: document.getElementById('incidentArea').value,
+    date: document.getElementById('incidentDate').value,
+    time: document.getElementById('incidentTime').value,
+    riskLevel: document.querySelector('input[name="riskLevel"]:checked')?.value || 'medium',
+    anonymous: document.getElementById('anonymousToggle').checked,
+    status: 'Pending Review',
+    submittedAt: new Date().toLocaleString('en-IN')
+  };
+
+  setTimeout(() => {
+    const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+    reports.unshift(report);
+    localStorage.setItem('aura_reports', JSON.stringify(reports));
+
+    showToast('success','Report submitted!','Thank you for helping keep communities safe.');
+    loadMyReports();
+    loadRecentReports();
+
+    // Reset
+    document.getElementById('reportForm').reset();
+    document.querySelectorAll('.type-chip').forEach(c => c.classList.remove('selected'));
+    selectedType = '';
+    document.getElementById('incidentType').value = '';
+    document.getElementById('incidentDate').value = new Date().toISOString().split('T')[0];
+
+    btn.innerHTML = '📋 Submit Report'; btn.disabled = false;
+  }, 1500);
+}
+
+function loadMyReports() {
+  const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  const tbody = document.getElementById('myReportsTable');
+  if (!reports.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">No reports yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = reports.slice(0,10).map(r => `
+    <tr>
+      <td>${r.date}</td>
+      <td>${r.type}</td>
+      <td>${r.area}, ${r.city}</td>
+      <td><span class="badge ${r.riskLevel==='high'?'badge-danger':r.riskLevel==='medium'?'badge-caution':'badge-safe'}">${r.riskLevel}</span></td>
+      <td><span class="badge badge-info">${r.status}</span></td>
+      <td style="color:${r.anonymous?'var(--green)':'var(--yellow)'};">${r.anonymous?'🔒 Yes':'👤 No'}</td>
+    </tr>
+  `).join('');
+}
+
+function loadRecentReports() {
+  const reports = JSON.parse(localStorage.getItem('aura_reports') || '[]');
+  const el = document.getElementById('recentReports');
+  const sample = reports.length ? reports.slice(0,4) : [
+    { type: 'Harassment', area: 'Kasba Peth', riskLevel: 'high', date: '2025-06-01' },
+    { type: 'Robbery', area: 'Hadapsar', riskLevel: 'high', date: '2025-05-30' },
+    { type: 'Suspicious Activity', area: 'Kothrud', riskLevel: 'medium', date: '2025-05-29' },
+  ];
+  el.innerHTML = sample.map(r => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <div>
+        <div style="font-size:0.82rem;font-weight:600;">${r.type}</div>
+        <div style="font-size:0.73rem;color:var(--text-muted);">${r.area || '—'}</div>
+      </div>
+      <span class="badge ${r.riskLevel==='high'?'badge-danger':r.riskLevel==='medium'?'badge-caution':'badge-safe'}" style="font-size:0.7rem;">${r.riskLevel}</span>
+    </div>
+  `).join('');
+}
+
+loadMyReports();
+loadRecentReports();
+</script>
+</body>
+</html>

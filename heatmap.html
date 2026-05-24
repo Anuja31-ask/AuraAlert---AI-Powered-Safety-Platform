@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crime Heatmap – AuraAlert</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    .map-page { padding-top: 68px; height: 100vh; display: flex; flex-direction: column; }
+    #mainMap { flex: 1; }
+    .map-panel {
+      position: absolute;
+      top: 80px; right: 16px;
+      z-index: 400;
+      width: 300px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+    }
+    .map-legend {
+      position: absolute;
+      bottom: 80px; left: 16px;
+      z-index: 400;
+    }
+    .map-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .legend-circle {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .filter-bar {
+      position: absolute;
+      top: 80px; left: 16px;
+      z-index: 400;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border-glass);
+      background: rgba(7,11,20,0.9);
+      backdrop-filter: blur(10px);
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .filter-chip:hover, .filter-chip.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
+    .filter-chip.danger.active { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+    .filter-chip.caution.active { background: var(--yellow-dim); border-color: var(--yellow); color: var(--yellow); }
+    .filter-chip.safe.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+
+    /* Leaflet dark theme override */
+    .leaflet-tile { filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7); }
+    .leaflet-container { background: #070b14; }
+    .leaflet-popup-content-wrapper {
+      background: #111827 !important;
+      color: #f8fafc !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      border-radius: 12px !important;
+    }
+    .leaflet-popup-tip { background: #111827 !important; }
+
+    @media (max-width: 768px) {
+      .map-panel { display: none; }
+      .filter-bar { top: 80px; left: 8px; right: 8px; }
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+
+<nav class="nav">
+  <a href="index.html" class="nav-brand">
+    <div class="logo-icon">🛡️</div>
+    <span class="brand-text">AuraAlert</span>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="dashboard.html">📊 Dashboard</a></li>
+    <li><a href="heatmap.html" class="active">🗺️ Heatmap</a></li>
+    <li><a href="sos.html">🆘 SOS</a></li>
+    <li><a href="report.html">📋 Report</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="btn btn-primary btn-sm" onclick="locateMe()">📍 My Location</button>
+    <div class="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></div>
+  </div>
+</nav>
+
+<div class="map-page" style="position:relative;">
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-chip active" onclick="filterMap('all', this)">🔍 All</div>
+    <div class="filter-chip danger" onclick="filterMap('high', this)">🔴 Danger</div>
+    <div class="filter-chip caution" onclick="filterMap('medium', this)">🟡 Caution</div>
+    <div class="filter-chip safe" onclick="filterMap('low', this)">🟢 Safe</div>
+    <div class="filter-chip" onclick="filterMap('night', this)">🌙 Night</div>
+    <div class="filter-chip" onclick="filterMap('evening', this)">🌆 Evening</div>
+  </div>
+
+  <!-- Map -->
+  <div id="mainMap"></div>
+
+  <!-- Side Panel -->
+  <div class="map-panel">
+    <div class="glass-card" style="padding:1.25rem;margin-bottom:1rem;">
+      <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.75rem;">📍 Your Safety Status</div>
+      <div id="mySafetyStatus" class="badge badge-safe" style="margin-bottom:0.75rem;font-size:0.82rem;">● Calculating…</div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);" id="locationText">Detecting your location…</div>
+    </div>
+
+    <div class="glass-card" style="padding:1.25rem;margin-bottom:1rem;">
+      <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.75rem;">🔥 Top Risk Areas</div>
+      <div id="riskList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    <div class="glass-card" style="padding:1.25rem;margin-bottom:1rem;">
+      <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.75rem;">🤖 AI Prediction</div>
+      <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.6;" id="aiPrediction">
+        Analyzing current time and crime patterns…
+      </div>
+    </div>
+
+    <div class="glass-card" style="padding:1.25rem;">
+      <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.75rem;">📊 Area Stats</div>
+      <div id="areaStats" style="display:flex;flex-direction:column;gap:6px;font-size:0.78rem;"></div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="map-legend glass-card" style="padding:0.5rem 0;">
+    <div class="map-legend-item"><div class="legend-circle" style="background:#ef4444;box-shadow:0 0 8px #ef4444;"></div>High Risk Zone</div>
+    <div class="map-legend-item"><div class="legend-circle" style="background:#f59e0b;box-shadow:0 0 8px #f59e0b;"></div>Medium Risk</div>
+    <div class="map-legend-item"><div class="legend-circle" style="background:#22c55e;box-shadow:0 0 8px #22c55e;"></div>Safe Zone</div>
+    <div class="map-legend-item"><div class="legend-circle" style="background:#06b6d4;box-shadow:0 0 8px #06b6d4;"></div>Your Location</div>
+  </div>
+</div>
+
+<!-- Danger Alert Modal -->
+<div class="modal-overlay" id="dangerModal">
+  <div class="modal" style="border:1px solid rgba(239,68,68,0.4);">
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="font-size:3rem;margin-bottom:0.5rem;animation:pulse-red 1s infinite;">⚠️</div>
+      <h3 style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--red);margin-bottom:0.5rem;">DANGER ZONE DETECTED</h3>
+      <p style="font-size:0.85rem;color:var(--text-secondary);" id="dangerModalText">You are within 1km of a high-risk area.</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <a href="sos.html" class="btn btn-danger" style="flex:1;">🆘 SOS Alert</a>
+      <button class="btn btn-ghost" onclick="closeDangerModal()" style="flex:1;">✓ Understood</button>
+    </div>
+  </div>
+</div>
+
+<!-- Zone Bar -->
+<div class="zone-bar safe" id="zoneBar">
+  <span id="zoneText">✅ You are in a SAFE zone</span>
+  <span style="font-size:0.78rem;opacity:0.7;" id="zoneLocation">📍 Locating…</span>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
+<script src="map.js"></script>
+<script>
+// Extra filter functionality for heatmap page
+function filterMap(type, el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  if (window.crimeMarkers) {
+    window.crimeMarkers.forEach(({ marker, data }) => {
+      let show = true;
+      if (type === 'high') show = data.risk_level === 'high';
+      else if (type === 'medium') show = data.risk_level === 'medium';
+      else if (type === 'low') show = data.risk_level === 'low';
+      else if (type === 'night') show = data.time === 'night';
+      else if (type === 'evening') show = data.time === 'evening';
+      if (show) marker.addTo(window.auraMap);
+      else if (window.auraMap.hasLayer(marker)) window.auraMap.removeLayer(marker);
+    });
+  }
+}
+</script>
+</body>
+</html>

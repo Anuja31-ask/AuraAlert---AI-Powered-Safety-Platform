@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – AuraAlert</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+<div id="toast-container"></div>
+
+<div class="auth-page">
+  <div class="auth-container">
+    <!-- Left Panel -->
+    <div class="auth-panel-left">
+      <div class="auth-brand">
+        <div class="logo">🛡️</div>
+        <span class="brand-name">AuraAlert</span>
+      </div>
+      <h2 class="auth-tagline">
+        Your AI Safety<br/>
+        <span class="highlight">Guardian</span><br/>
+        Awaits
+      </h2>
+      <p class="auth-desc">
+        Millions of women trust AuraAlert every day. Real-time crime maps, instant SOS, and AI-powered danger detection.
+      </p>
+      <div class="auth-features">
+        <div class="auth-feature">
+          <div class="icon cyan">🗺️</div>
+          <span>Live crime heatmap for your city</span>
+        </div>
+        <div class="auth-feature">
+          <div class="icon red">🆘</div>
+          <span>One-tap SOS emergency alerts</span>
+        </div>
+        <div class="auth-feature">
+          <div class="icon yellow">⚠️</div>
+          <span>Real-time danger zone detection</span>
+        </div>
+        <div class="auth-feature">
+          <div class="icon green">🔒</div>
+          <span>Anonymous incident reporting</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="auth-panel-right">
+      <div class="auth-form-header">
+        <h2>Welcome back 👋</h2>
+        <p>Don't have an account? <a href="register.html">Sign up free</a></p>
+      </div>
+
+      <form class="auth-form" id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" class="form-control" id="loginEmail" placeholder="you@example.com" required />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="password-wrap">
+            <input type="password" class="form-control" id="loginPassword" placeholder="Enter your password" required />
+            <button type="button" class="toggle-pw" onclick="togglePassword('loginPassword', this)">👁️</button>
+          </div>
+        </div>
+
+        <div class="remember-forgot">
+          <label class="remember-label">
+            <input type="checkbox" id="rememberMe" />
+            Remember me
+          </label>
+          <a href="#" class="forgot-link">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full btn-lg" id="loginBtn">
+          🔐 Sign In
+        </button>
+
+        <div class="auth-divider"><span>or continue with</span></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <button type="button" class="btn btn-outline" onclick="demoLogin()">
+            👤 Demo Login
+          </button>
+          <button type="button" class="btn btn-outline" onclick="adminLogin()">
+            🔧 Admin Login
+          </button>
+        </div>
+
+        <p class="terms-note">
+          By signing in, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+        </p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script src="auth.js"></script>
+<script>
+function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const btn = document.getElementById('loginBtn');
+
+  btn.innerHTML = '<div class="loader-ring" style="width:18px;height:18px;border-width:2px;margin:0 auto;"></div>';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    // Check admin
+    if (email === 'admin@auraalert.com' && password === 'admin123') {
+      const user = { name: 'Admin User', email, role: 'admin', id: 'admin-1' };
+      localStorage.setItem('aura_user', JSON.stringify(user));
+      localStorage.setItem('aura_logged', 'true');
+      showToast('success', 'Welcome Admin!', 'Redirecting to admin panel…');
+      setTimeout(() => location.href = 'admin.html', 1000);
+      return;
+    }
+    // Check registered users
+    const users = JSON.parse(localStorage.getItem('aura_users') || '[]');
+    const found = users.find(u => u.email === email && u.password === btoa(password));
+    if (found) {
+      localStorage.setItem('aura_user', JSON.stringify(found));
+      localStorage.setItem('aura_logged', 'true');
+      showToast('success', 'Welcome back!', `Hello ${found.name} 👋`);
+      setTimeout(() => location.href = 'dashboard.html', 1000);
+    } else {
+      showToast('error', 'Login failed', 'Invalid email or password.');
+      btn.innerHTML = '🔐 Sign In';
+      btn.disabled = false;
+    }
+  }, 1200);
+}
+
+function demoLogin() {
+  document.getElementById('loginEmail').value = 'demo@auraalert.com';
+  document.getElementById('loginPassword').value = 'demo123';
+  // Ensure demo user exists
+  const users = JSON.parse(localStorage.getItem('aura_users') || '[]');
+  if (!users.find(u => u.email === 'demo@auraalert.com')) {
+    users.push({
+      id: 'demo-1', name: 'Priya Sharma', email: 'demo@auraalert.com',
+      password: btoa('demo123'), phone: '9876543210', city: 'Pune',
+      bloodGroup: 'B+', role: 'user',
+      contacts: [
+        { name: 'Rahul Sharma', phone: '9123456789', relation: 'Brother' },
+        { name: 'Sunita Devi', phone: '9234567891', relation: 'Mother' }
+      ]
+    });
+    localStorage.setItem('aura_users', JSON.stringify(users));
+  }
+  showToast('info', 'Demo credentials filled', 'Click Sign In to continue');
+}
+
+function adminLogin() {
+  document.getElementById('loginEmail').value = 'admin@auraalert.com';
+  document.getElementById('loginPassword').value = 'admin123';
+  showToast('info', 'Admin credentials filled', 'Click Sign In to continue');
+}
+</script>
+</body>
+</html>
